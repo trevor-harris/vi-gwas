@@ -1,13 +1,12 @@
 import numpy as np
-from pystan import StanModel
-from math import exp
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sb
+from pystan import StanModel
+from math import exp
 
 # data shape
-p = 100
+p = 1000
 true_p = 10
 n = 100
 
@@ -23,13 +22,10 @@ snps = (snps - snps.mean(axis = 0)) / snps.std(axis = 0)
 
 # generate genotypes
 # select a subset to be in the true model
-true_snps_ind = np.random.choice(np.arange(1, p), true_p, replace = False)
-true_snps = snps[:, true_snps_ind]
-true_beta = np.random.normal(0, 1, true_p)
-
-# TODO: make this into an actual df and save it
-print(true_snps_ind)
-print(true_beta)
+true_id = np.arange(1, p, int(p/true_p))
+true_snps = snps[:, true_id]
+true_beta = np.random.choice(np.array([-3, -2, -1, 1, 2, 3]), true_p)
+true_alpha = -0.2
 
 # create gene expression levels
 def binomialize(x):
@@ -37,11 +33,11 @@ def binomialize(x):
 	return np.random.binomial(1, p, 1)
 vbin = np.vectorize(binomialize)
 
-geno = true_snps * true_beta
-geno = np.sum(geno, axis = 1)
+geno = np.sum(true_alpha + true_snps * true_beta, axis = 1)
 geno = vbin(geno)
 
-# Begin Stan section
+
+ # Begin Stan section
 gwas_code = '''
 data {
 	// dimensions of the data
@@ -102,7 +98,10 @@ advi_coef = pd.read_csv(param_file
 	,skiprows = [0, 1, 2, 3, 5, 6]
 	)
 
-# note that the beta number is snps number + 1
-# TODO: definitely need a more efficient plot for this many parameters...
-sb.violinplot(data = advi_coef.filter(like = "beta"))
-sb.plt.show()
+# betas = advi_coef.filter(like = "beta")
+# betas = betas[betas.apply(lambda x: )]
+
+# # note that the beta number is snps number + 1
+# # TODO: definitely need a more efficient plot for this many parameters...
+# sb.violinplot(data = advi_coef.filter(like = "beta"))
+# sb.plt.show()
