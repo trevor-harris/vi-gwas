@@ -6,8 +6,8 @@ from pystan import StanModel
 from math import exp
 
 # data shape
-p = 3000
-true_p = 10
+p = 100000
+true_p = 5
 n = 1500
 
 # generate SNPs
@@ -36,7 +36,6 @@ vbin = np.vectorize(binomialize)
 geno = true_alpha + np.sum(true_snps * true_beta, axis = 1)
 geno = vbin(geno)
 
-
  # Begin Stan section
 gwas_code = '''
 data {
@@ -54,60 +53,93 @@ parameters {
 	real alpha;
 	vector[P] beta;
 
-	// horseshoe+ prior parameters
-	//vector<lower = 0>[P] lambda;
-	//vector<lower = 0>[P] eta;
-	//real<lower = 0> tau;
+	// horseshoe prior parameters
+	vector<lower = 0>[P] lambda;
+	real<lower = 0> tau;
 }
 
 model {
-	// construct horseshoe+ prior on the betas...this has to be wrong..
-	//tau ~ cauchy(0, 1);
-	//eta ~ cauchy(0, 1);
-	//lambda ~ cauchy(0, 1);
-	//beta ~ normal(0, lambda .* eta * tau);
+	// construct horseshoe prior on the betas
+	tau ~ cauchy(0, 0.0005);
+	lambda ~ cauchy(0, 0.0005);
+	for (p in 1:P)
+	  beta[p] ~ normal(0, lambda[p] * tau);
+
 
 	// instead use the laplace prior to regularize. Much better convergence.
-	beta ~ double_exponential(0, 1);
+	//beta ~ double_exponential(0, 0.5);
 
 	// construct model 
 	y ~ bernoulli_logit(alpha + x * beta);
 }
 '''
+model = StanModel(model_code = gwas_code)
+
+# ---------
+# Mini-batch idea -- finds coeffs better (unless shrinkage is increased) but is much slower
+# all_betas = pd.Series(0)
+# splits = 100
+
+# ts = time.time()
+# for i in range(splits):
+
+# 	sub_len = p // splits
+# 	snps_i = snps[:, i * sub_len:(i + 1) * sub_len]
+
+# 	gwas_data = {
+# 		'N': n
+# 		,'P': sub_len
+# 		,'y': geno
+# 		,'x': snps_i
+# 	}
+
+# 	# ADVI using stochastic(?) gradient descent
+# 	fit_advi = model.vb(data = gwas_data
+# 		,output_samples = 2000
+# 		,iter = 10000
+# 		,algorithm = 'meanfield')
+
+# 	# read in the posterior draws for each parameter
+# 	param_file = fit_advi['args']['sample_file'].decode("utf-8")
+# 	advi_coef = pd.read_csv(param_file 
+# 		,skiprows = [0, 1, 2, 3, 5, 6])
+
+# 	betas = advi_coef.filter(like = "beta")
+
+# 	# relabel to have the actual indicies of the betas after the split
+# 	current_index = range(i * sub_len, (i + 1) * sub_len)
+# 	betas.columns = ["beta."+str(j) for j in current_index]
+
+# 	betas = betas.mean(axis = 0)
+# 	top_betas = abs(betas).sort_values()[-1:]
+# 	all_betas = all_betas.append(top_betas)
+
+# print(np.arange(1, p, int(p/true_p)))
+# print(all_betas.sort_values()[-25:][::-1])
+# print(time.time() - ts_1)
 
 gwas_data = {
-	'N': n
-	,'P': p
-	,'y': geno
-	,'x': snps
-}
-
-model = StanModel(model_code = gwas_code)
+		'N': n
+		,'P': p
+		,'y': geno
+		,'x': snps
+	}
 
 # ADVI using stochastic(?) gradient descent
 fit_advi = model.vb(data = gwas_data
-	,output_samples = 2000
+	,output_samples = 1000
 	,iter = 10000
 	,algorithm = 'meanfield')
 
 # read in the posterior draws for each parameter
 param_file = fit_advi['args']['sample_file'].decode("utf-8")
 advi_coef = pd.read_csv(param_file 
-	,skiprows = [0, 1, 2, 3, 5, 6]
-	)
-
-print(param_file)
-
-# betas = advi_coef.filter(like = "beta")
-# betas = betas[betas.apply(lambda x: )]
-
-# # note that the beta number is snps number + 1
-print(true_beta)
-# sb.boxplot(data = advi_coef.filter(like = "beta"), showfliers=False)
-# sb.plt.show()
+	,skiprows = [0, 1, 2, 3, 5, 6])
 
 betas = advi_coef.filter(like = "beta")
-betas = betas.mean(axis = 0)
-print(np.arange(1, p, int(p/true_p)) + 1)
-print(abs(betas).sort_values()[-20:])
 
+# relabel to have the actual indicies of the betas after the split
+betas.columns = ["beta."+str(j) for j in range(0, p)]
+
+# save coefficients in hdf5 format
+betas.to_hdf('/tmp/current_model/output.h5', 'data', mode='w', format='fixed')
