@@ -39,5 +39,6 @@ geno = pd.DataFrame(geno)
 snps = pd.DataFrame(snps)
 
 # write the data in hdf5 format for faster reading
-snps.to_hdf(os.path.expanduser('~/research/vi-gwas/data/snps.h5'), 'data', mode='w', format='fixed')
-geno.to_hdf(os.path.expanduser('~/research/vi-gwas/data/geno.h5'), 'data', mode='w', format='fixed')
+home = os.path.expanduser('~')
+snps.to_hdf(home + '/research/vi-gwas/data/snps.h5', 'data', mode='w', format='fixed')
+geno.to_hdf(home + '/research/vi-gwas/data/geno.h5', 'data', mode='w', format='fixed')

@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 from pystan import StanModel
-from math import exp
-
 
  # Begin Stan section
 gwas_code = '''
@@ -45,8 +43,9 @@ model {
 model = StanModel(model_code = gwas_code)
 
 # read in previously generated data
-geno = pd.read_hdf(os.path.expanduser('~/research/vi-gwas/data/geno.h5'))
-snps = pd.read_hdf(os.path.expanduser('~/research/vi-gwas/data/snps.h5'))
+home = os.path.expanduser('~')
+geno = pd.read_hdf(home + '/research/vi-gwas/data/geno_small.h5')
+snps = pd.read_hdf(home + '/research/vi-gwas/data/snps_small.h5')
 
 geno = geno.values.flatten()
 snps = snps.values
@@ -69,13 +68,12 @@ fit_advi = model.vb(data = gwas_data
 
 # read in the posterior draws for each parameter
 param_file = fit_advi['args']['sample_file'].decode("utf-8")
-advi_coef = pd.read_csv(param_file 
-	,skiprows = [0, 1, 2, 3, 5, 6])
-
-betas = advi_coef.filter(like = "beta")
+advi_coef = pd.read_csv(param_file, skiprows = [0, 1, 2, 3, 5, 6])
 
 # relabel to have the actual indicies of the betas after the split
-betas.columns = ["beta."+str(j) for j in range(0, p)]
+betas = advi_coef.filter(like = "beta")
+betas.columns = ["beta." + str(j) for j in range(0, p)]
 
 # save coefficients in hdf5 format
-betas.to_hdf(os.path.expanduser('~/research/vi-gwas/data/betas.h5'), 'data', mode='w', format='fixed')
+betas.to_hdf(home + '/research/vi-gwas/data/betas.h5', 'data', mode='w'
+	,format='fixed')
