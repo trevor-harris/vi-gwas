@@ -27,13 +27,14 @@ parameters {
 
 model {
 	// construct horseshoe prior on the betas
-	tau ~ cauchy(0, 0.00001);
-	lambda ~ cauchy(0, 0.00001);
-	for (p in 1:P)
-	  beta[p] ~ normal(0, lambda[p] * tau);
+	tau ~ cauchy(0, 0.0001);
+	lambda ~ cauchy(0, 0.0001);
+	beta ~ normal(0, lambda * tau);
+	//for (p in 1:P)
+	//  beta[p] ~ normal(0, lambda[p] * tau);
 
 
-	// instead use the laplace prior to regularize. Much better convergence.
+	// instead use the laplace prior to regularize. Much easier convergence.
 	//beta ~ double_exponential(0, 0.5);
 
 	// construct model 
@@ -75,5 +76,5 @@ betas = advi_coef.filter(like = "beta")
 betas.columns = ["beta." + str(j) for j in range(0, p)]
 
 # save coefficients in hdf5 format
-betas.to_hdf(home + '/research/vi-gwas/data/betas.h5', 'data', mode='w'
+betas.to_hdf(home + '/research/vi-gwas/data/betas_small.h5', 'data', mode='w'
 	,format='fixed')

@@ -5,9 +5,9 @@ import os
 from math import exp
 
 # data shape
-p = 500000
+p = 100000
 true_p = 5
-n = 2000
+n = 1000
 
 # generate SNPs
 maf = np.random.uniform(0.05, 0.5, p)
