@@ -1,12 +1,10 @@
 import numpy as np
 import pandas as pd
-import os
 import matplotlib.pyplot as plt
 import seaborn as sb
 from scipy import stats
 
-home = os.path.expanduser('~')
-raw_betas = pd.read_hdf(home + '/research/vi-gwas/data/betas_small.h5')
+raw_betas = pd.read_hdf('data/betas_small.h5')
 
 n = raw_betas.shape[0]
 p = raw_betas.shape[1]

@@ -4,9 +4,8 @@ import os
 from sklearn import linear_model
 
 # read in previously generated data
-home = os.path.expanduser('~')
-geno = pd.read_hdf(home + '/research/vi-gwas/data/geno.h5')
-snps = pd.read_hdf(home + '/research/vi-gwas/data/snps.h5')
+geno = pd.read_hdf(home + 'data/geno_small_corr.h5')
+snps = pd.read_hdf(home + 'data/snps_small_corr.h5')
 
 geno = geno.values.flatten()
 snps = snps.values

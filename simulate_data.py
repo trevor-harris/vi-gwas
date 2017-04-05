@@ -1,15 +1,23 @@
 # generate the GWAS data for testing the variationl bayes methods
 import numpy as np
 import pandas as pd
-import os
 from math import exp
 
+
 # data shape
-p = 100000
+p = 50000
 true_p = 5
 n = 1000
 
-# generate SNPs
+# linear algebra black magic to generate a postive definite matrix (i.e. a covariance matrix)
+A = np.matrix([np.random.randn(n) + np.random.randn(1)*3 for i in range(n)])
+A = A*np.transpose(A)
+D_half = np.diag(np.diag(A)**(-0.5))
+C = D_half*A*D_half
+
+# compute the cholesky decomp
+chol_l = np.linalg.cholesky(C)
+
 maf = np.random.uniform(0.05, 0.5, p)
 snps = np.empty(shape = (n, p))
 
@@ -18,6 +26,10 @@ for ind, f in np.ndenumerate(maf):
 
 # normalize snps
 snps = (snps - snps.mean(axis = 0)) / snps.std(axis = 0)
+
+# multiply on the left by the L from the cholesky decomp to force data to have the desired correlations 
+# as generated from the covariance matrix
+snps = chol_l * snps
 
 # generate genotypes
 # select a subset to be in the true model
@@ -32,13 +44,20 @@ def binomialize(x):
 	return np.random.binomial(1, p, 1)
 vbin = np.vectorize(binomialize)
 
-geno = true_alpha + np.sum(true_snps * true_beta, axis = 1)
+geno = true_alpha + np.sum(np.dot(true_snps, true_beta), axis = 1)
 geno = vbin(geno)
 
 geno = pd.DataFrame(geno)
 snps = pd.DataFrame(snps)
 
 # write the data in hdf5 format for faster reading
-home = os.path.expanduser('~')
-snps.to_hdf(home + '/research/vi-gwas/data/snps.h5', 'data', mode='w', format='fixed')
-geno.to_hdf(home + '/research/vi-gwas/data/geno.h5', 'data', mode='w', format='fixed')
+snps.to_hdf('data/snps_small_corr.h5', 'data', mode='w', format='fixed')
+geno.to_hdf('data/geno_small_corr.h5', 'data', mode='w', format='fixed')
+
+# save the true parameters
+actual = pd.DataFrame({
+	'snp_id': true_id
+	,'beta': true_beta 
+	})
+
+actual.to_hdf('data/actual_small_corr.h5', 'data', mode='w', format='fixed')
