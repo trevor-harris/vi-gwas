@@ -5,12 +5,12 @@ from math import exp
 
 
 # data shape
-p = 50000
+p = 1000
 true_p = 5
-n = 1000
+n = 5000
 
 # linear algebra black magic to generate a postive definite matrix (i.e. a covariance matrix)
-A = np.matrix([np.random.randn(n) + np.random.randn(1)*3 for i in range(n)])
+A = np.matrix([np.random.randn(n) + np.random.randn(1)*2 for i in range(n)])
 A = A*np.transpose(A)
 D_half = np.diag(np.diag(A)**(-0.5))
 C = D_half*A*D_half
@@ -24,19 +24,19 @@ snps = np.empty(shape = (n, p))
 for ind, f in np.ndenumerate(maf):
 	snps[:, ind[0]] = np.random.binomial(2, f, n)
 
-# normalize snps
-snps = (snps - snps.mean(axis = 0)) / snps.std(axis = 0)
 
 # multiply on the left by the L from the cholesky decomp to force data to have the desired correlations 
 # as generated from the covariance matrix
 snps = chol_l * snps
+
+# normalize snps
+snps = (snps - snps.mean(axis = 0)) / snps.std(axis = 0)
 
 # generate genotypes
 # select a subset to be in the true model
 true_id = np.arange(1, p, int(p/true_p))
 true_snps = snps[:, true_id]
 true_beta = np.random.choice(np.array([-3, -2, -1, 1, 2, 3]), true_p)
-true_alpha = -0.2
 
 # create gene expression levels
 def binomialize(x):
@@ -44,7 +44,11 @@ def binomialize(x):
 	return np.random.binomial(1, p, 1)
 vbin = np.vectorize(binomialize)
 
-geno = true_alpha + np.sum(np.dot(true_snps, true_beta), axis = 1)
+true_snps = np.array(true_snps)
+true_beta = np.array(true_beta)
+
+# geno = true_alpha + np.sum(np.dot(true_snps, true_beta), axis = 1)
+geno = np.sum(true_snps * true_beta, axis = 1)
 geno = vbin(geno)
 
 geno = pd.DataFrame(geno)

@@ -19,7 +19,6 @@ data {
 
 parameters {
 	// regression coefficients
-	real alpha;
 	vector[P] beta;
 
 	// horseshoe prior parameters
@@ -41,10 +40,10 @@ model {
 
 
 	// instead use the laplace prior to regularize. Much easier convergence.
-	//beta ~ double_exponential(0, 0.5);
+	//beta ~ double_exponential(0, shrink);
 
 	// construct model 
-	y ~ bernoulli_logit(alpha + x * beta);
+	y ~ bernoulli_logit(x * beta);
 }
 '''
 model = StanModel(model_code = gwas_code)
@@ -64,15 +63,19 @@ gwas_data = {
 		,'P': p
 		,'y': geno
 		,'x': snps
-		,'shrink': 0.00001
+		,'shrink': 0.001
 	}
+
+# # HMC 
+# fit_hmc = model.sampling(data = gwas_data, n_jobs = -1)
+# print(fit_hmc)
 
 # ADVI using stochastic(?) gradient descent
 fit_advi = model.vb(data = gwas_data
 	,output_samples = 1000
 	,iter = 10000
 	,eval_elbo = 50
-	,tol_rel_obj = 0.005
+	,tol_rel_obj = 0.01
 	,algorithm = 'meanfield')
 
 # read in the posterior draws for each parameter

@@ -23,6 +23,3 @@ top_betas = raw_betas.filter(items = beta_index)
 sb.violinplot(data = abs(top_betas))
 sb.plt.xticks(rotation = 45)
 sb.plt.show()
-
-
-
