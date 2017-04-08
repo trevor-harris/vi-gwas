@@ -12,35 +12,27 @@ data {
 	// predictors (x) and target (y)
 	matrix[N, P] x;
 	int<lower = 0, upper = 1> y[N];
-
-	// extra parameters
-	real shrink;
 }
 
 parameters {
 	// regression coefficients
 	vector[P] beta;
+	real<lower = 0> scale;
 
 	// horseshoe prior parameters
-	vector<lower = 0>[P] lambda;
-	vector<lower = 0>[P] eta;
-	real<lower = 0> tau;
+	//vector<lower = 0>[P] lambda;
+	//vector<lower = 0>[P] eta;
+	//real<lower = 0> tau;
 }
 
 model {
-	// construct horseshoe+ prior on the betas
-	tau ~ cauchy(0, shrink);
-	eta ~ cauchy(0, shrink);
-	lambda ~ cauchy(0, shrink);
-	beta ~ normal(0, lambda .* eta * tau);
-
-	// same thing
-	//for (p in 1:P)
-	//  beta[p] ~ normal(0, lambda[p] * tau);
-
+	//tau ~ cauchy(0, 0.1);
+	//lambda ~ cauchy(0, tau);
+	//beta ~ normal(0, lambda);
 
 	// instead use the laplace prior to regularize. Much easier convergence.
-	//beta ~ double_exponential(0, shrink);
+	//scale ~ gamma(2, 0.1);
+	beta ~ double_exponential(0, scale);
 
 	// construct model 
 	y ~ bernoulli_logit(x * beta);

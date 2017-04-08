@@ -6,43 +6,34 @@ from math import exp
 
 # data shape
 p = 5000
-true_p = 5
-n = 500
+true_p = 10
+n = 1000
 
+# make matrix a tridiagonal matrix
 def tridiag(mat, k1=-1, k2=0, k3=1):
 	a = np.diag(mat, k1)
 	b = np.diag(mat, k2)
 	c = np.diag(mat, k3)
 	return np.diag(a, k1) + np.diag(b, k2) + np.diag(c, k3)
 
-# linear algebra black magic to generate a postive definite matrix (i.e. a covariance matrix)
-A = np.matrix([np.random.randn(n) + np.random.randn(1)*2 for i in range(n)])
-A = A*np.transpose(A)
-D_half = np.diag(np.diag(A)**(-0.5))
-C = D_half*A*D_half
+# generate mean
+mu = np.ones(p)
 
-# compute the cholesky decomp
-chol_l = np.linalg.cholesky(C)
+# generate covariance
+sig = (np.random.rand(p, p) - np.random.rand(p, p))**2
+sig = np.dot(sig, np.transpose(sig))
+sig = tridiag(sig, -2, -1, 0) + tridiag(sig, 0, 1, 2)
 
-maf = np.random.uniform(0.05, 0.5, p)
-snps = np.empty(shape = (n, p))
-
-for ind, f in np.ndenumerate(maf):
-	snps[:, ind[0]] = np.random.binomial(2, f, n)
-
-
-# multiply on the left by the L from the cholesky decomp to force data to have the desired correlations 
-# as generated from the covariance matrix
-snps = chol_l * snps
-
-# normalize snps
-snps = (snps - snps.mean(axis = 0)) / snps.std(axis = 0)
+# generate snps with the above mean and corr structure
+snps = np.random.multivariate_normal(mu, sig, size=n)
+# snps = (snps - snps.mean(axis = 0)) / snps.std(axis = 0)
 
 # generate genotypes
 # select a subset to be in the true model
-true_id = np.arange(1, p, int(p/true_p))
+# true_id = np.arange(1, p, int(p/true_p))
+true_id = np.arange(1, true_p + 1)
 true_snps = snps[:, true_id]
-true_beta = np.random.choice(np.array([-3, -2, -1, 1, 2, 3]), true_p)
+true_beta = np.random.choice(np.array([-0.4, -0.3, -0.2, 0.2, 0.3, 0.4]), true_p)
 
 # create gene expression levels
 def binomialize(x):
