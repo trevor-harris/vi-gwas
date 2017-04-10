@@ -26,12 +26,17 @@ parameters {
 }
 
 model {
-	//tau ~ cauchy(0, 0.1);
-	//lambda ~ cauchy(0, tau);
+	//tau ~ cauchy(0, 1);
+	//eta ~ cauchy(0, 1);
+	//lambda ~ cauchy(0, tau * eta);
 	//beta ~ normal(0, lambda);
 
 	// instead use the laplace prior to regularize. Much easier convergence.
 	//scale ~ gamma(2, 0.1);
+	//scale ~ cauchy(0, 1);
+	//scale ~ student_t(4, 0, 1);
+
+	scale ~ cauchy(0, 0.001);
 	beta ~ double_exponential(0, scale);
 
 	// construct model 
@@ -41,8 +46,8 @@ model {
 model = StanModel(model_code = gwas_code)
 
 # read in previously generated data
-geno = pd.read_hdf('data/geno_small_corr.h5')
-snps = pd.read_hdf('data/snps_small_corr.h5')
+geno = pd.read_hdf('data/geno_small.h5')
+snps = pd.read_hdf('data/snps_small.h5')
 
 geno = geno.values.flatten()
 snps = snps.values
@@ -55,18 +60,17 @@ gwas_data = {
 		,'P': p
 		,'y': geno
 		,'x': snps
-		,'shrink': 0.001
 	}
 
 # # HMC 
 # fit_hmc = model.sampling(data = gwas_data, n_jobs = -1)
 # print(fit_hmc)
 
-# ADVI using stochastic(?) gradient descent
+# ADVI using stochastic gradient descent
 fit_advi = model.vb(data = gwas_data
 	,output_samples = 1000
-	,iter = 10000
-	,eval_elbo = 50
+	,iter = 30000
+	,eval_elbo = 250
 	,tol_rel_obj = 0.01
 	,algorithm = 'meanfield')
 

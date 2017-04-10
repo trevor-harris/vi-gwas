@@ -31,9 +31,17 @@ snps = np.random.multivariate_normal(mu, sig, size=n)
 # generate genotypes
 # select a subset to be in the true model
 # true_id = np.arange(1, p, int(p/true_p))
-true_id = np.arange(1, true_p + 1)
+#true_id = np.arange(1, true_p + 1)
+
+# amatuer hour workaround for a numpy bug
+ids = np.arange(1, p)
+id1 = list(ids[0:int(true_p/2)])
+id2 = list(ids[p - 1 - int(true_p/2):])
+true_id = np.asarray(id1 + id2)
+
 true_snps = snps[:, true_id]
 true_beta = np.random.choice(np.array([-0.4, -0.3, -0.2, 0.2, 0.3, 0.4]), true_p)
+
 
 # create gene expression levels
 def binomialize(x):
