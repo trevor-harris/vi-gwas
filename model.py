@@ -17,27 +17,29 @@ data {
 parameters {
 	// regression coefficients
 	vector[P] beta;
-	real<lower = 0> scale;
 
 	// horseshoe prior parameters
-	//vector<lower = 0>[P] lambda;
-	//vector<lower = 0>[P] eta;
-	//real<lower = 0> tau;
+	vector<lower = 0>[P] lambda;
+	vector<lower = 0>[P] eta;
+	real<lower = 0> tau;
+
+	// laplace parameters
+	//real<lower = 0> scale;
 }
 
 model {
-	//tau ~ cauchy(0, 1);
-	//eta ~ cauchy(0, 1);
-	//lambda ~ cauchy(0, tau * eta);
-	//beta ~ normal(0, lambda);
+	tau ~ cauchy(0, 1);
+	eta ~ cauchy(0, 1);
+	lambda ~ cauchy(0, tau * eta);
+	beta ~ normal(0, lambda);
 
 	// instead use the laplace prior to regularize. Much easier convergence.
 	//scale ~ gamma(2, 0.1);
 	//scale ~ cauchy(0, 1);
 	//scale ~ student_t(4, 0, 1);
 
-	scale ~ cauchy(0, 0.001);
-	beta ~ double_exponential(0, scale);
+	//scale ~ student_t(1, 0, 4);
+	//beta ~ double_exponential(0, scale);
 
 	// construct model 
 	y ~ bernoulli_logit(x * beta);
@@ -46,8 +48,8 @@ model {
 model = StanModel(model_code = gwas_code)
 
 # read in previously generated data
-geno = pd.read_hdf('data/geno_small.h5')
-snps = pd.read_hdf('data/snps_small.h5')
+geno = pd.read_hdf('data/geno.h5')
+snps = pd.read_hdf('data/snps.h5')
 
 geno = geno.values.flatten()
 snps = snps.values
@@ -69,7 +71,7 @@ gwas_data = {
 # ADVI using stochastic gradient descent
 fit_advi = model.vb(data = gwas_data
 	,output_samples = 1000
-	,iter = 30000
+	,iter = 40000
 	,eval_elbo = 250
 	,tol_rel_obj = 0.01
 	,algorithm = 'meanfield')
@@ -83,4 +85,8 @@ betas = advi_coef.filter(like = "beta")
 betas.columns = ["beta." + str(j) for j in range(0, p)]
 
 # save coefficients in hdf5 format
-betas.to_hdf('data/betas_small.h5', 'data', mode='w', format='fixed')
+betas.to_hdf('data/betas.h5', 'data', mode='w', format='fixed')
+
+# save other estimates in hdf5
+param = advi_coef.filter(regex = "^(?!beta).*$")
+param.to_hdf('data/param.h5', 'data', mode='w', format='fixed')
