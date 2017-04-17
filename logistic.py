@@ -12,12 +12,10 @@ snps = snps.values
 n = snps.shape[0]
 p = snps.shape[1]
 
-regress = linear_model.LogisticRegression(warm_start = True)
-betas = np.zeros(p)
-
-
+regress = linear_model.LogisticRegression(warm_start = True, penalty = 'l1')
 fit = regress.fit(snps, geno)
 
+betas = np.zeros(p)
 betas = fit.coef_
 betas = pd.Series(betas.flatten())
 betas.index = ["beta." + str(j) for j in range(p)]

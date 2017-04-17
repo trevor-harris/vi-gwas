@@ -38,7 +38,7 @@ model {
 	//scale ~ cauchy(0, 1);
 	//scale ~ student_t(4, 0, 1);
 
-	//scale ~ student_t(1, 0, 4);
+	//scale ~ gamma(2, 0.1);
 	//beta ~ double_exponential(0, scale);
 
 	// construct model 
@@ -64,7 +64,7 @@ gwas_data = {
 		,'x': snps
 	}
 
-# # HMC 
+# HMC 
 # fit_hmc = model.sampling(data = gwas_data, n_jobs = -1)
 # print(fit_hmc)
 
